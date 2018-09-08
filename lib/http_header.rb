@@ -1,8 +1,35 @@
+class FirstLine
+  def initialize(tokens)
+    @tokens = tokens
+  end
+
+  def [](key)
+    @tokens[key]
+  end
+
+  def []=(key, value)
+    @tokens[key] = value
+  end
+
+  def to_s
+    @tokens.join(' ')
+  end
+end
+
+def FirstLine.read(line)
+  FirstLine.new line.split(%r{\s+}, 3)
+end
+
+
 class HttpHeader < Hash
 
   def initialize(firstline)
     @name_table = Hash.new
     @firstline = firstline
+  end
+
+  def firstline
+    @firstline
   end
 
   def org_keys
@@ -19,12 +46,16 @@ class HttpHeader < Hash
   end
 
   def to_s
-    s = "#{@firstline}\r\n"
+    s = "#{firstline}\r\n"
     self.each do |key, value|
       s << "#{@name_table[key]}: #{value}\r\n"
     end
     s << "\r\n"
     return s
+  end
+
+  def to_str
+    self.to_s
   end
 
   protected
@@ -38,7 +69,7 @@ end
 def HttpHeader.read(text)
   firstline = text.lines[0].strip
   fields = text.lines[1..-1]
-  header = HttpHeader.new firstline
+  header = HttpHeader.new FirstLine.read(firstline)
   fields.each do |line|
     tokens = line.split ':', 2
     name = tokens[0].strip
