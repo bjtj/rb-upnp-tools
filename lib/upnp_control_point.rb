@@ -3,27 +3,14 @@ require "webrick"
 require 'net/http'
 require 'uri'
 require 'logger'
-require_relative "upnp.rb"
 require_relative "ssdp.rb"
+require_relative "upnp_model.rb"
 require_relative "usn.rb"
 require_relative "upnp_soap.rb"
 require_relative "upnp_event.rb"
 
 
 $logger = Logger.new STDOUT
-
-
-class SubscribeRequest < Net::HTTPRequest
-  METHOD = 'SUBSCRIBE'
-  REQUEST_HAS_BODY = false
-  RESPONSE_HAS_BODY = false
-end
-
-class UnsubscribeRequest < Net::HTTPRequest
-  METHOD = 'UNSUBSCRIBE'
-  REQUEST_HAS_BODY = false
-  RESPONSE_HAS_BODY = false
-end
 
 
 class UPnPDeviceListener
@@ -60,20 +47,17 @@ end
 class UPnPControlPoint
 
   def initialize(host = '0.0.0.0', port = 0)
+    @finishing = false
     @ssdp_listener = SSDP::SsdpListener.new
     @ssdp_listener.handler = self
     @http_server = WEBrick::HTTPServer.new :BindAddress => host, :Port => port
     @http_server.mount '/', EventNotifyServlet, self
     @devices = {}
     @subscriptions = {}
+    @interval_timer = 10
   end
 
   attr_accessor :device_listener, :event_listener, :subscriptions
-
-
-  def on_time_task
-    
-  end
 
 
   def on_event_notify(sid, body)
@@ -144,7 +128,7 @@ class UPnPControlPoint
       res = http.request req
       sid = res['sid']
       timeout = res['timeout'].split('-')[-1]
-      subscription = UPnPEventSubscription.new sid, timeout, url
+      subscription = UPnPEventSubscription.new device, service, sid, timeout
       @subscriptions[sid] = subscription
       return subscription
     }
@@ -155,7 +139,7 @@ class UPnPControlPoint
     headers = {
       'SID' => subscription.sid,
     }
-    url = subscription.url
+    url = URI::join(subscription.device.base_url, subscription.service.scpdurl)
     Net::HTTP.start(url.host, url.port) { |http|
       req = UnsubscribeRequest.new url, initheader = headers
       res = http.request req
@@ -180,15 +164,34 @@ class UPnPControlPoint
     UPnPSoapResponse.read res.body
   end
 
+  
+  def on_timer
+    @devices.reject! {|key, value| value.expired? }
+  end
 
+  def timer_loop
+    start = Process.clock_gettime(Process::CLOCK_MONOTONIC, :second)
+    while not @finishing
+      dur = Process.clock_gettime(Process::CLOCK_MONOTONIC, :second) - start
+      if dur >= @interval_timer
+        on_timer
+        start = Process.clock_gettime(Process::CLOCK_MONOTONIC, :second)
+      end
+    end
+  end
+  
   def start
+    @finishing = false
     @ssdp_listener_thread = Thread.new { @ssdp_listener.run }
     @http_server_thread = Thread.new { @http_server.start }
+    @timer_thread = Thread.new { timer_loop }
   end
 
 
   def stop
+    @finishing = true
     @http_server.shutdown
     @http_server_thread.join
+    @timer_thread.join
   end
 end

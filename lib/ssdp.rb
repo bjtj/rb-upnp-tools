@@ -82,17 +82,8 @@ module SSDP
       @finishing = false
     end
 
-    def port
-      @port
-    end
-
-    def handler
-      @handler
-    end
-
-    def handler=(handler)
-      @handler = handler
-    end
+    attr_reader :port
+    attr_accessor :handler
 
     def finish
       @finishing = true
@@ -111,10 +102,15 @@ module SSDP
       while @finishing == false do
         timeout = 1
         if ios = select(fds, [], [], timeout)
-          pack = socket.recvfrom(4096)
-          ssdp_header = SsdpHeader.new HttpHeader.read(pack[0].chomp)
+          data, addr = socket.recvfrom(4096)
+          ssdp_header = SsdpHeader.new HttpHeader.read(data.chomp)
           if @handler
-            @handler.on_ssdp_header(ssdp_header)
+            responses = @handler.on_ssdp_header(ssdp_header)
+            if responses != nil
+              responses.each do |response|
+                socket.send response.to_s, 0, addr[2], addr[1]
+              end
+            end
           end
         end
       end
@@ -156,8 +152,8 @@ module SSDP
         break
       end
       if ios = select(fds, [], [], 1)
-        pack = socket.recvfrom(4096)
-        ssdp_header = SsdpHeader.new HttpHeader.read(pack[0].chomp)
+        data, addr = socket.recvfrom(4096)
+        ssdp_header = SsdpHeader.new HttpHeader.read(data.chomp)
         if handler
           handler.call(ssdp_header)
         end

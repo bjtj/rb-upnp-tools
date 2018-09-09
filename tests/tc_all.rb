@@ -1,0 +1,5 @@
+require_relative 'tc_etc.rb'
+require_relative 'tc_network.rb'
+require_relative 'tc_soap.rb'
+require_relative 'tc_ssdp.rb'
+require_relative 'tc_upnp_model.rb'

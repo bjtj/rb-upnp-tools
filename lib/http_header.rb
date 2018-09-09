@@ -45,6 +45,10 @@ class HttpHeader < Hash
     super _issensitive(key), value
   end
 
+  def update!(hash)
+    hash.each { |k,v| self[k] = v }
+  end
+
   def to_s
     s = "#{firstline}\r\n"
     self.each do |key, value|

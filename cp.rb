@@ -7,7 +7,7 @@ cp.device_listener = UPnPDeviceListener.new lambda {|device|
   puts "added: #{device['friendlyName']}"
 
   res = cp.invoke_action device, device.services.first, 'GetTarget', {}
-  puts res.to_xml
+  # puts res.to_xml
   puts res
   
   subscription = cp.subscribe device, device.services.first

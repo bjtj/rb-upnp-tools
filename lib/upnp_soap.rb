@@ -21,23 +21,22 @@ class UPnPSoapRequest < Hash
       'xmlns:u' => @service_type
     }
     self.each do |k,v|
-      prop = action.append XmlTag k
+      prop = action.append XmlTag.new k
       prop.append XmlText.new v
     end
 
-    return '<?xml version="1.0" encoding="utf-8"?>' + "\n#{tag}"
-    
+    return tag.to_s
   end
+end
+
+def UPnPSoapRequest.to_xml_doc(soap_req)
+  return '<?xml version="1.0" encoding="utf-8"?>' + "\n#{soap_req.to_xml}"
 end
 
 def UPnPSoapRequest.read(xml)
   soap_req = UPnPSoapRequest.new
   doc = Nokogiri::XML(xml)
   action_elem = doc.root.first_element_child.first_element_child
-  # puts action_elem.methods.grep(/.*/)
-  # puts '------------------------'
-  # puts action_elem.attributes
-  # puts action_elem.namespace.href
   soap_req.service_type = action_elem.namespace.href
   soap_req.action_name = action_elem.name
   action_elem.elements.each do |node|
@@ -74,10 +73,13 @@ class UPnPSoapResponse < Hash
       prop.append XmlText.new(v)
     end
 
-    return '<?xml version="1.0" encoding="utf-8"?>' + "\n#{tag}"
+    return tag.to_s
   end
 end
 
+def UPnPSoapResponse.to_xml_doc(soap_res)
+  return '<?xml version="1.0" encoding="utf-8"?>' + "\n#{soap_res.to_xml}"
+end
 
 def UPnPSoapResponse.read(xml)
   soap_res = UPnPSoapResponse.new
