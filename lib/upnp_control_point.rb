@@ -50,7 +50,7 @@ class UPnPControlPoint
 
 
   def on_http_request(req, res)
-    if req.path == '/event'
+    if req.request_method == 'NOTIFY' and req.path == '/event'
       on_event_notify req['SID'], req.body
     end
     res.status = 200

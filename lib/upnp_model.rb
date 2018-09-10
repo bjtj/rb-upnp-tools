@@ -64,6 +64,15 @@ class UPnPDevice < UPnPModel
   define_xml_attr :deviceType, :UDN, :friendlyName, :manufacturer, :manufacturerURL,
                   :modelDescription, :modelName, :modelNumber, :modelURL, :serialNumber
 
+  def renew_expire
+    # todo
+  end
+
+  def expired?
+    # todo
+    nil
+  end
+
   def usn
     return udn + '::' + device_type
   end
