@@ -6,7 +6,7 @@ class TestSsdp < Test::Unit::TestCase
     server = UPnPServer.new
     device  = UPnPDevice.read open('../res/device.xml').read
     device.udn = 'uuid:' + SecureRandom::uuid
-    server.register_device device
+    server.register_device device, {}
 
     puts '----'
 

@@ -231,7 +231,7 @@ class TestUPnPModel < Test::Unit::TestCase
     
     # puts scpd.to_xml
 
-    assert_equal scpd.to_xml_doc, UPnPScpd.read(open('../res/scpd.xml').read).to_xml_doc
+    assert_equal UPnPScpd.to_xml_doc(scpd), UPnPScpd.to_xml_doc(UPnPScpd.read(open('../res/scpd.xml').read))
     
     
   end

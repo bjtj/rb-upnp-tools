@@ -1,9 +1,9 @@
 require 'active_support/core_ext/hash/conversions'
-require "webrick"
 require 'net/http'
 require 'uri'
 require 'logger'
 require_relative "ssdp.rb"
+require_relative "http_server.rb"
 require_relative "upnp_model.rb"
 require_relative "usn.rb"
 require_relative "upnp_soap.rb"
@@ -33,31 +33,28 @@ class UPnPDeviceListener
 end
 
 
-class EventNotifyServlet < WEBrick::HTTPServlet::AbstractServlet
-  def do_NOTIFY(req, res)
-    cp = @options[0]
-    if req.path == '/event'
-      cp.on_event_notify req['SID'], req.body
-    end
-    res.status = 200
-  end
-end
-
-
 class UPnPControlPoint
 
   def initialize(host = '0.0.0.0', port = 0)
     @finishing = false
     @ssdp_listener = SSDP::SsdpListener.new
     @ssdp_listener.handler = self
-    @http_server = WEBrick::HTTPServer.new :BindAddress => host, :Port => port
-    @http_server.mount '/', EventNotifyServlet, self
+    @http_server = HttpServer.new host, port
+    @http_server.handler = lambda { |req, res| on_http_request req, res }
     @devices = {}
     @subscriptions = {}
     @interval_timer = 10
   end
 
   attr_accessor :device_listener, :event_listener, :subscriptions
+
+
+  def on_http_request(req, res)
+    if req.path == '/event'
+      on_event_notify req['SID'], req.body
+    end
+    res.status = 200
+  end
 
 
   def on_event_notify(sid, body)
@@ -116,7 +113,7 @@ class UPnPControlPoint
 
   def subscribe(device, service)
     host = self.get_ip_address
-    port = @http_server.config[:Port]
+    port = @http_server.get_port
     headers = {
       'NT' => 'upnp:event',
       'CALLBACK' => "<http://#{host}:#{port}/event>",
@@ -190,7 +187,7 @@ class UPnPControlPoint
 
   def stop
     @finishing = true
-    @http_server.shutdown
+    @http_server.stop
     @http_server_thread.join
     @timer_thread.join
   end
