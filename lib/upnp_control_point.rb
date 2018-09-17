@@ -90,6 +90,7 @@ class UPnPControlPoint
         @devices.delete usn.udn
       end
     end
+    nil
   end
 
 

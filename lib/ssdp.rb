@@ -68,7 +68,7 @@ module SSDP
     
     def on_ssdp_header(ssdp_header)
       if @func
-        return @func.(ssdp_header)
+        return @func.call(ssdp_header)
       end
     end
   end
